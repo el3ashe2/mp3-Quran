@@ -9,7 +9,7 @@ const DARK = { background: "#181a1b", color: "#f1f1f1", card: "#222426", accent:
 const LIGHT = { background: "#fafbfc", color: "#181a1b", card: "#fff", accent: "#0bb3c8", input: "#fafbfc", border: "#ddd" };
 
 function App() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
   const theme = darkMode ? DARK : LIGHT;
 
   const [languages, setLanguages] = useState([]);
