@@ -3,10 +3,26 @@ import axios from "axios";
 
 const PAGE_SIZE_RECITERS = 20;
 const PAGE_SIZE_SURAHS = 20;
-function pad3(n) { return n.toString().padStart(3, "0"); }
+function pad3(n) {
+  return n.toString().padStart(3, "0");
+}
 
-const DARK = { background: "#181a1b", color: "#f1f1f1", card: "#222426", accent: "#0bb3c8", input: "#282b2c", border: "#444446" };
-const LIGHT = { background: "#fafbfc", color: "#181a1b", card: "#fff", accent: "#0bb3c8", input: "#fafbfc", border: "#ddd" };
+const DARK = {
+  background: "#181a1b",
+  color: "#f1f1f1",
+  card: "#222426",
+  accent: "#0bb3c8",
+  input: "#282b2c",
+  border: "#444446",
+};
+const LIGHT = {
+  background: "#fafbfc",
+  color: "#181a1b",
+  card: "#fff",
+  accent: "#0bb3c8",
+  input: "#fafbfc",
+  border: "#ddd",
+};
 
 function App() {
   const [darkMode, setDarkMode] = useState(true);
@@ -26,21 +42,35 @@ function App() {
   // Visitor counter state
   const [visitCount, setVisitCount] = useState(0);
 
+  // Fix: derive short lang code from URLs provided by API
   useEffect(() => {
-    // Load visitor count from localStorage and update if first visit this session
-    const countKey = 'mp3QuranVisitorCount';
-    let count = parseInt(localStorage.getItem(countKey)) || 0;
-    if (!sessionStorage.getItem('visited')) {
-      count += 1;
-      localStorage.setItem(countKey, count);
-      sessionStorage.setItem('visited', 'true');
-    }
-    setVisitCount(count);
+    axios.get("https://www.mp3quran.net/api/v3/languages").then((res) => {
+      const langs = res.data.language || [];
+      const fixedLangs = langs.map((l) => {
+        // Try to extract short code from reciters url
+        const recitersUrl = l.reciters || "";
+        const codeMatch = recitersUrl.match(/language=([a-z]+)/i);
+        const code = codeMatch ? codeMatch[1] : l.language.toLowerCase();
+        return {
+          ...l,
+          code,
+        };
+      });
+      setLanguages(fixedLangs);
+      if (fixedLangs.length > 0) setActiveLang(fixedLangs[0].code);
+    });
   }, []);
 
   useEffect(() => {
-    axios.get("https://www.mp3quran.net/api/v3/languages")
-      .then(res => setLanguages(res.data.language || []));
+    // Visitor counter logic
+    const countKey = "mp3QuranVisitorCount";
+    let count = parseInt(localStorage.getItem(countKey)) || 0;
+    if (!sessionStorage.getItem("visited")) {
+      count += 1;
+      localStorage.setItem(countKey, count);
+      sessionStorage.setItem("visited", "true");
+    }
+    setVisitCount(count);
   }, []);
 
   useEffect(() => {
@@ -48,17 +78,20 @@ function App() {
     setReciterPage(1);
     setSurahPage(1);
     setSearch("");
-    axios.get(`https://www.mp3quran.net/api/v3/reciters?language=${activeLang}`)
-      .then(res => {
+    if (!activeLang) return;
+    axios
+      .get(`https://www.mp3quran.net/api/v3/reciters?language=${activeLang}`)
+      .then((res) => {
         const recitersArr = Array.isArray(res.data.reciters) ? res.data.reciters : [];
         setReciters(recitersArr);
         setFilteredReciters(recitersArr);
       });
-    axios.get(`https://www.mp3quran.net/api/v3/suwar?language=${activeLang}`)
-      .then(r => {
+    axios
+      .get(`https://www.mp3quran.net/api/v3/suwar?language=${activeLang}`)
+      .then((r) => {
         const names = {};
         const suwarArr = Array.isArray(r.data.suwar) ? r.data.suwar : [];
-        suwarArr.forEach(s => {
+        suwarArr.forEach((s) => {
           names[s.id] = s.name;
         });
         setSurahNames(names);
@@ -70,9 +103,11 @@ function App() {
     if (!search) {
       setFilteredReciters(reciters);
     } else {
-      setFilteredReciters((reciters || []).filter(r =>
-        r.name && r.name.toLowerCase().includes(search.toLowerCase())
-      ));
+      setFilteredReciters(
+        (reciters || []).filter(
+          (r) => r.name && r.name.toLowerCase().includes(search.toLowerCase())
+        )
+      );
     }
   }, [search, reciters]);
 
@@ -99,7 +134,16 @@ function App() {
   const pageCountSurahs = Math.max(1, Math.ceil((surahs || []).length / PAGE_SIZE_SURAHS));
 
   return (
-    <div style={{ fontFamily: "Segoe UI,Arial,sans-serif", minHeight: "100vh", background: theme.background, color: theme.color, position: "relative", paddingBottom: "40px" }}>
+    <div
+      style={{
+        fontFamily: "Segoe UI,Arial,sans-serif",
+        minHeight: "100vh",
+        background: theme.background,
+        color: theme.color,
+        position: "relative",
+        paddingBottom: "40px",
+      }}
+    >
       <div style={{ textAlign: "center", margin: "20px 0" }}>
         <h1 style={{ margin: 0 }}>MP3 Quran Player</h1>
         <button
@@ -114,9 +158,9 @@ function App() {
             border: "none",
             fontWeight: "bold",
             fontSize: 16,
-            cursor: "pointer"
+            cursor: "pointer",
           }}
-          onClick={() => setDarkMode(m => !m)}
+          onClick={() => setDarkMode((m) => !m)}
         >
           {darkMode ? "☀️ Light" : "🌙 Dark"}
         </button>
@@ -133,16 +177,16 @@ function App() {
               color: theme.color,
               border: `1px solid ${theme.border}`,
               marginRight: 16,
-              marginTop: 6
+              marginTop: 6,
             }}
             value={activeLang}
-            onChange={e => setActiveLang(e.target.value)}
+            onChange={(e) => setActiveLang(e.target.value)}
           >
-            {languages.map(lang =>
-              <option key={lang.id} value={lang.language}>
-                {lang.native} ({lang.language})
+            {languages.map((lang) => (
+              <option key={lang.id} value={lang.code}>
+                {lang.native} ({lang.code})
               </option>
-            )}
+            ))}
           </select>
           <input
             style={{
@@ -152,30 +196,32 @@ function App() {
               background: theme.input,
               color: theme.color,
               border: `1px solid ${theme.border}`,
-              width: 220
+              width: 220,
             }}
             placeholder="Search reciters"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       )}
 
       {!selectedReciter && (
         <>
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))",
-            gap: 28,
-            margin: "0 auto",
-            maxWidth: 1100,
-          }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))",
+              gap: 28,
+              margin: "0 auto",
+              maxWidth: 1100,
+            }}
+          >
             {paginatedReciters.length === 0 ? (
               <div style={{ gridColumn: "1/-1", textAlign: "center", color: "#d32f2f", fontSize: 20 }}>
                 No reciters found for this language.
               </div>
             ) : (
-              paginatedReciters.map(rec => (
+              paginatedReciters.map((rec) => (
                 <div
                   key={rec.id}
                   style={{
@@ -185,9 +231,13 @@ function App() {
                     padding: 16,
                     textAlign: "center",
                     transition: "0.2s",
-                    cursor: "pointer"
+                    cursor: "pointer",
                   }}
-                  onClick={() => { setSelectedReciter(rec); setSurahPage(1); setPlayingSid(null); }}
+                  onClick={() => {
+                    setSelectedReciter(rec);
+                    setSurahPage(1);
+                    setPlayingSid(null);
+                  }}
                 >
                   <img
                     src={rec.image && rec.image !== "" ? `https://www.mp3quran.net/images/${rec.image}` : "/logo512.png"}
@@ -201,7 +251,9 @@ function App() {
                       background: "#f1f1f1",
                     }}
                     loading="lazy"
-                    onError={e => { e.target.src = "/logo512.png"; }}
+                    onError={(e) => {
+                      e.target.src = "/logo512.png";
+                    }}
                   />
                   <div style={{ fontWeight: "bold", fontSize: 16, marginBottom: 4 }}>{rec.name}</div>
                   <div style={{ color: theme.accent, fontSize: 14 }}>{rec.letter}</div>
@@ -220,12 +272,16 @@ function App() {
                   background: theme.card,
                   color: theme.color,
                   border: `1px solid ${theme.border}`,
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
                 disabled={reciterPage === 1}
                 onClick={() => setReciterPage(reciterPage - 1)}
-              >Prev</button>
-              <span style={{ fontWeight: "bold", margin: "0 12px" }}>Page {reciterPage} / {pageCountReciters}</span>
+              >
+                Prev
+              </button>
+              <span style={{ fontWeight: "bold", margin: "0 12px" }}>
+                Page {reciterPage} / {pageCountReciters}
+              </span>
               <button
                 style={{
                   padding: "7px 16px",
@@ -235,25 +291,29 @@ function App() {
                   background: theme.card,
                   color: theme.color,
                   border: `1px solid ${theme.border}`,
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
                 disabled={reciterPage === pageCountReciters}
                 onClick={() => setReciterPage(reciterPage + 1)}
-              >Next</button>
+              >
+                Next
+              </button>
             </div>
           )}
         </>
       )}
 
       {selectedReciter && (
-        <div style={{
-          maxWidth: 720,
-          margin: "32px auto",
-          background: theme.card,
-          borderRadius: 16,
-          boxShadow: `0 2px 18px ${theme.border}`,
-          padding: 32
-        }}>
+        <div
+          style={{
+            maxWidth: 720,
+            margin: "32px auto",
+            background: theme.card,
+            borderRadius: 16,
+            boxShadow: `0 2px 18px ${theme.border}`,
+            padding: 32,
+          }}
+        >
           <button
             style={{
               marginBottom: 18,
@@ -263,35 +323,43 @@ function App() {
               borderRadius: 8,
               border: "none",
               fontWeight: "bold",
-              cursor: "pointer"
+              cursor: "pointer",
             }}
-            onClick={() => { setSelectedReciter(null); setPlayingSid(null); }}
+            onClick={() => {
+              setSelectedReciter(null);
+              setPlayingSid(null);
+            }}
           >
             ← Back to Reciters
           </button>
           <h2 style={{ textAlign: "center", marginBottom: 20 }}>
             <img
-              src={selectedReciter.image && selectedReciter.image !== "" ? `https://www.mp3quran.net/images/${selectedReciter.image}` : "https://www.mp3quran.net/images/no-image.jpg"}
+              src={
+                selectedReciter.image && selectedReciter.image !== ""
+                  ? `https://www.mp3quran.net/images/${selectedReciter.image}`
+                  : "https://www.mp3quran.net/images/no-image.jpg"
+              }
               alt={selectedReciter.name}
               style={{ width: 70, height: 70, borderRadius: "50%", verticalAlign: "middle", marginRight: 10, objectFit: "cover" }}
             />
-            {selectedReciter.name} - {languages.find(l => l.language === activeLang)?.native}
+            {selectedReciter.name} - {languages.find((l) => l.language === activeLang)?.native}
           </h2>
           {paginatedSurahs.length === 0 ? (
-            <div style={{ textAlign: "center", color: "#d32f2f", fontSize: 18 }}>
-              No tracks found for this reciter.
-            </div>
+            <div style={{ textAlign: "center", color: "#d32f2f", fontSize: 18 }}>No tracks found for this reciter.</div>
           ) : (
-            paginatedSurahs.map(sid => {
+            paginatedSurahs.map((sid) => {
               const url = `${selectedReciter.moshaf[0].server}${pad3(sid)}.mp3`;
               return (
-                <div key={sid} style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  borderBottom: `1px solid ${theme.border}`,
-                  padding: "10px 0"
-                }}>
+                <div
+                  key={sid}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    borderBottom: `1px solid ${theme.border}`,
+                    padding: "10px 0",
+                  }}
+                >
                   <span>
                     <span style={{ fontWeight: "bold" }}>{surahNames[sid] ? surahNames[sid] : `Surah #${sid}`}</span>
                   </span>
@@ -315,7 +383,7 @@ function App() {
                           border: "none",
                           fontWeight: "bold",
                           marginRight: 5,
-                          cursor: "pointer"
+                          cursor: "pointer",
                         }}
                         onClick={() => setPlayingSid(sid)}
                       >
@@ -332,10 +400,12 @@ function App() {
                         color: "#fff",
                         borderRadius: 8,
                         textDecoration: "none",
-                        fontWeight: "bold"
+                        fontWeight: "bold",
                       }}
                       title="Download mp3"
-                    >⬇ Download</a>
+                    >
+                      ⬇ Download
+                    </a>
                   </div>
                 </div>
               );
@@ -352,12 +422,19 @@ function App() {
                   background: theme.card,
                   color: theme.color,
                   border: `1px solid ${theme.border}`,
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
                 disabled={surahPage === 1}
-                onClick={() => { setSurahPage(surahPage - 1); setPlayingSid(null); }}
-              >Prev</button>
-              <span style={{ fontWeight: "bold", margin: "0 12px" }}>Page {surahPage} / {pageCountSurahs}</span>
+                onClick={() => {
+                  setSurahPage(surahPage - 1);
+                  setPlayingSid(null);
+                }}
+              >
+                Prev
+              </button>
+              <span style={{ fontWeight: "bold", margin: "0 12px" }}>
+                Page {surahPage} / {pageCountSurahs}
+              </span>
               <button
                 style={{
                   padding: "7px 16px",
@@ -367,37 +444,45 @@ function App() {
                   background: theme.card,
                   color: theme.color,
                   border: `1px solid ${theme.border}`,
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
                 disabled={surahPage === pageCountSurahs}
-                onClick={() => { setSurahPage(surahPage + 1); setPlayingSid(null); }}
-              >Next</button>
+                onClick={() => {
+                  setSurahPage(surahPage + 1);
+                  setPlayingSid(null);
+                }}
+              >
+                Next
+              </button>
             </div>
           )}
         </div>
       )}
 
       {/* Visitor Counter at bottom */}
-      <footer style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: theme.card,
-        borderTop: `1px solid ${theme.border}`,
-        padding: "10px",
-        textAlign: "center",
-        color: theme.accent,
-        fontWeight: "bold",
-        fontSize: 14,
-        userSelect: "none"
-      }}>
-        Visitors: {visitCount} &nbsp; | &nbsp;
-        Contact: Ahmed Aamer – <a href="mailto:ahmed.amer@mail.com" style={{ color: theme.accent, textDecoration: "underline" }}>ahmed.amer@mail.com</a>
+      <footer
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: theme.card,
+          borderTop: `1px solid ${theme.border}`,
+          padding: "10px",
+          textAlign: "center",
+          color: theme.accent,
+          fontWeight: "bold",
+          fontSize: 14,
+          userSelect: "none",
+        }}
+      >
+        Visitors: {visitCount} &nbsp; | &nbsp; Contact: Ahmed Aamer –{" "}
+        <a href="mailto:ahmed.amer@mail.com" style={{ color: theme.accent, textDecoration: "underline" }}>
+          ahmed.amer@mail.com
+        </a>
       </footer>
     </div>
   );
 }
 
 export default App;
-
