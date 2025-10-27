@@ -24,6 +24,10 @@ const LIGHT = {
   border: "#ddd",
 };
 
+// Replace these with your CounterAPI details
+const COUNTER_BASE = "https://api.counterapi.dev/v2/qan/quran";
+const API_TOKEN = "YOUR_ACTUAL_API_TOKEN";
+
 function App() {
   const [darkMode, setDarkMode] = useState(true);
   const theme = darkMode ? DARK : LIGHT;
@@ -39,15 +43,44 @@ function App() {
   const [surahPage, setSurahPage] = useState(1);
   const [playingSid, setPlayingSid] = useState(null);
 
-  // Visitor counter state
   const [visitCount, setVisitCount] = useState(0);
 
-  // Fix: derive short lang code from URLs provided by API
+  // Visitor counter with CounterAPI
+  useEffect(() => {
+    const visitedKey = "visitor_counted";
+    const headers = { Authorization: `Bearer ${API_TOKEN}` };
+
+    async function incrementAndFetch() {
+      try {
+        await axios.post(`${COUNTER_BASE}/up`, {}, { headers });
+        await fetchCount();
+        sessionStorage.setItem(visitedKey, "true");
+      } catch {
+        setVisitCount(0);
+      }
+    }
+
+    async function fetchCount() {
+      try {
+        const res = await axios.get(COUNTER_BASE, { headers });
+        setVisitCount(res.data.data.up_count || 0);
+      } catch {
+        setVisitCount(0);
+      }
+    }
+
+    if (!sessionStorage.getItem(visitedKey)) {
+      incrementAndFetch();
+    } else {
+      fetchCount();
+    }
+  }, []);
+
+  // Languages fetch and code extraction
   useEffect(() => {
     axios.get("https://www.mp3quran.net/api/v3/languages").then((res) => {
       const langs = res.data.language || [];
       const fixedLangs = langs.map((l) => {
-        // Try to extract short code from reciters url
         const recitersUrl = l.reciters || "";
         const codeMatch = recitersUrl.match(/language=([a-z]+)/i);
         const code = codeMatch ? codeMatch[1] : l.language.toLowerCase();
@@ -61,18 +94,7 @@ function App() {
     });
   }, []);
 
-  useEffect(() => {
-    // Visitor counter logic
-    const countKey = "mp3QuranVisitorCount";
-    let count = parseInt(localStorage.getItem(countKey)) || 0;
-    if (!sessionStorage.getItem("visited")) {
-      count += 1;
-      localStorage.setItem(countKey, count);
-      sessionStorage.setItem("visited", "true");
-    }
-    setVisitCount(count);
-  }, []);
-
+  // Fetch reciters and surah names on language change
   useEffect(() => {
     setSelectedReciter(null);
     setReciterPage(1);
@@ -98,6 +120,7 @@ function App() {
       });
   }, [activeLang]);
 
+  // Filter reciters by search
   useEffect(() => {
     setReciterPage(1);
     if (!search) {
@@ -364,7 +387,6 @@ function App() {
                     <span style={{ fontWeight: "bold" }}>{surahNames[sid] ? surahNames[sid] : `Surah #${sid}`}</span>
                   </span>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {/* Play button */}
                     {playingSid === sid ? (
                       <audio
                         autoPlay
@@ -390,7 +412,6 @@ function App() {
                         ▶ Play
                       </button>
                     )}
-                    {/* Download button */}
                     <a
                       href={url}
                       download
@@ -459,7 +480,6 @@ function App() {
         </div>
       )}
 
-      {/* Visitor Counter at bottom */}
       <footer
         style={{
           position: "fixed",
