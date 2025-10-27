@@ -337,7 +337,7 @@ function App() {
               src={
                 selectedReciter.image && selectedReciter.image !== ""
                   ? `https://www.mp3quran.net/images/${selectedReciter.image}`
-                  : "https://www.mp3quran.net/images/no-image.jpg"
+                  : "/logo192.png"
               }
               alt={selectedReciter.name}
               style={{ width: 70, height: 70, borderRadius: "50%", verticalAlign: "middle", marginRight: 10, objectFit: "cover" }}
