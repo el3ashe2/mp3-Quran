@@ -26,7 +26,7 @@ const LIGHT = {
 
 // Replace these with your CounterAPI details
 const COUNTER_BASE = "https://api.counterapi.dev/v2/qan/quran";
-const API_TOKEN = "YOUR_ACTUAL_API_TOKEN";
+const API_TOKEN = "ut_ztYqsEQGaoYnyV5WYYvEDntXo7UrlRYU31EGYg1z";
 
 function App() {
   const [darkMode, setDarkMode] = useState(true);
