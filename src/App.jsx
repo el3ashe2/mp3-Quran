@@ -190,7 +190,7 @@ function App() {
                   onClick={() => { setSelectedReciter(rec); setSurahPage(1); setPlayingSid(null); }}
                 >
                   <img
-                    src={rec.image && rec.image !== "" ? `https://www.mp3quran.net/images/${rec.image}` : "https://www.mp3quran.net/images/no-image.jpg"}
+                    src={rec.image && rec.image !== "" ? `https://www.mp3quran.net/images/${rec.image}` : "/logo512.png"}
                     alt={rec.name}
                     style={{
                       width: 90,
@@ -201,7 +201,7 @@ function App() {
                       background: "#f1f1f1",
                     }}
                     loading="lazy"
-                    onError={e => { e.target.src = "https://www.mp3quran.net/images/no-image.jpg"; }}
+                    onError={e => { e.target.src = "/logo512.png"; }}
                   />
                   <div style={{ fontWeight: "bold", fontSize: 16, marginBottom: 4 }}>{rec.name}</div>
                   <div style={{ color: theme.accent, fontSize: 14 }}>{rec.letter}</div>
